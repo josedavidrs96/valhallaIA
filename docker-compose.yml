@@ -1,0 +1,68 @@
+services:
+  app:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    container_name: valhalla_app
+    working_dir: /var/www/html/backend
+    volumes:
+      - ./backend:/var/www/html/backend
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=local
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: php artisan serve --host=0.0.0.0 --port=8000
+    networks:
+      - valhalla
+
+  mysql:
+    image: mysql:8.0
+    container_name: valhalla_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: valhalla
+      MYSQL_USER: valhalla
+      MYSQL_PASSWORD: valhalla
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 10s
+      retries: 10
+      interval: 5s
+    networks:
+      - valhalla
+
+  redis:
+    image: redis:7-alpine
+    container_name: valhalla_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - valhalla
+
+  node:
+    image: node:20-alpine
+    container_name: valhalla_node
+    working_dir: /app/frontend
+    volumes:
+      - ./frontend:/app/frontend
+    ports:
+      - "5173:5173"
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    networks:
+      - valhalla
+
+volumes:
+  mysql_data:
+
+networks:
+  valhalla:
+    driver: bridge
