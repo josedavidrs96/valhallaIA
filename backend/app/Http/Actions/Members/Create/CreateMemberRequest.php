@@ -17,6 +17,7 @@ final class CreateMemberRequest extends FormRequest
     {
         return new CreateMemberDto(
             email:       (string) $this->input('email', ''),
+            password:    (string) $this->input('password', ''),
             firstName:   (string) $this->input('first_name', ''),
             lastName:    (string) $this->input('last_name', ''),
             planId:      (string) $this->input('membership_plan_id', ''),

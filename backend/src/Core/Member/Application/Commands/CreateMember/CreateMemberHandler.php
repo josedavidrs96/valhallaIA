@@ -56,7 +56,10 @@ final class CreateMemberHandler
             UserModel::query()->create([
                 UserTable::ID                   => $command->userId->value(),
                 UserTable::EMAIL                => $command->email,
-                UserTable::PASSWORD             => password_hash(Str::random(16), PASSWORD_BCRYPT),
+                UserTable::PASSWORD             => password_hash(
+                    $command->plainPassword !== '' ? $command->plainPassword : Str::random(16),
+                    PASSWORD_BCRYPT
+                ),
                 UserTable::ROLE                 => UserRole::Member->value,
                 UserTable::STATUS               => UserStatus::PendingApproval->value,
                 UserTable::MUST_CHANGE_PASSWORD => 1,

@@ -33,8 +33,9 @@ final class CreateMemberAction
             $this->handler->handle(new CreateMemberCommand(
                 memberId:    $memberId,
                 userId:      $userId,
-                email:       $dto->email,
-                firstName:   $dto->firstName,
+                email:         $dto->email,
+                plainPassword: $dto->password,
+                firstName:     $dto->firstName,
                 lastName:    $dto->lastName,
                 joinDate:    $dto->joinDate,
                 planId:      MembershipPlanId::fromString($dto->planId),

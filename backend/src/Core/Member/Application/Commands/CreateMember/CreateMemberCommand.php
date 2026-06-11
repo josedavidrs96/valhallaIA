@@ -18,6 +18,7 @@ final class CreateMemberCommand
         public readonly string           $lastName,
         public readonly \DateTimeImmutable $joinDate,
         public readonly MembershipPlanId $planId,
+        public readonly string           $plainPassword = '',
         public readonly ?string          $phone = null,
         public readonly ?\DateTimeImmutable $dateOfBirth = null,
     ) {}
