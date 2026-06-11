@@ -18,6 +18,7 @@ final class ListMembersRequest extends FormRequest
         return new ListMembersDto(
             status:  $this->input('status'),
             planId:  $this->input('plan_id'),
+            search:  $this->input('search'),
             page:    (int) $this->input('page', 1),
             perPage: (int) $this->input('per_page', 20),
         );

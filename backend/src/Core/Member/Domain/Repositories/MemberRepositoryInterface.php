@@ -27,9 +27,9 @@ interface MemberRepositoryInterface
     /**
      * @return MemberListItemRM[]
      */
-    public function findAll(?string $status, ?string $planId, int $page, int $perPage): array;
+    public function findAll(?string $status, ?string $planId, ?string $search, int $page, int $perPage): array;
 
-    public function countAll(?string $status, ?string $planId): int;
+    public function countAll(?string $status, ?string $planId, ?string $search = null): int;
 
     /**
      * @throws MemberNotFoundException

@@ -9,6 +9,7 @@ final class ListMembersQuery
     public function __construct(
         public readonly ?string $status  = null,
         public readonly ?string $planId  = null,
+        public readonly ?string $search  = null,
         public readonly int     $page    = 1,
         public readonly int     $perPage = 20,
     ) {}

@@ -15,6 +15,7 @@ final class ListMembersHandler
         $items = $this->memberRepository->findAll(
             status:  $query->status,
             planId:  $query->planId,
+            search:  $query->search,
             page:    $query->page,
             perPage: $query->perPage,
         );
@@ -22,6 +23,7 @@ final class ListMembersHandler
         $total = $this->memberRepository->countAll(
             status: $query->status,
             planId: $query->planId,
+            search: $query->search,
         );
 
         return [

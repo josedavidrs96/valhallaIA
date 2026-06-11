@@ -2,9 +2,9 @@ import { Navigate } from 'react-router-dom'
 import { useAuth, type UserRole } from '@/contexts/AuthContext'
 
 const roleDashboards: Record<UserRole, string> = {
-  admin:  '/admin/dashboard',
-  coach:  '/entrenador/dashboard',
-  member: '/socio/dashboard',
+  admin:  '/admin/socios',
+  coach:  '/entrenador/clases',
+  member: '/socio/inicio',
 }
 
 interface Props {

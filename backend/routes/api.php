@@ -33,10 +33,16 @@ use App\Http\Actions\Payments\List\ListPaymentsAction;
 use App\Http\Actions\Payments\Detail\GetPaymentDetailAction;
 use App\Http\Actions\Payments\Overdue\GetOverdueMembersAction;
 use App\Http\Actions\MemberPayments\GetMyPaymentsAction;
+use App\Http\Actions\Plans\ListMembershipPlansAction;
+use App\Http\Actions\ClassTypes\ListClassTypesAction;
+use App\Http\Actions\Staff\ListCoachesAction;
 use Illuminate\Support\Facades\Route;
 
 // Admin routes — members management
 Route::prefix('admin')->middleware(['auth:sanctum', 'role.admin', 'force.password.change'])->group(function () {
+    Route::get('/membership-plans', ListMembershipPlansAction::class);
+    Route::get('/class-types',      ListClassTypesAction::class);
+    Route::get('/coaches',          ListCoachesAction::class);
     Route::post('/members',                           CreateMemberAction::class);
     Route::get('/members',                            ListMembersAction::class);
     Route::get('/members/{id}',                       GetMemberDetailAction::class);

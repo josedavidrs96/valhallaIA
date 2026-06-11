@@ -66,13 +66,13 @@ final class MemberRepository implements MemberRepositoryInterface
     /**
      * @return MemberListItemRM[]
      */
-    public function findAll(?string $status, ?string $planId, int $page, int $perPage): array
+    public function findAll(?string $status, ?string $planId, ?string $search, int $page, int $perPage): array
     {
         $offset = ($page - 1) * $perPage;
 
         $rows = DB::select(
-            $this->buildListQuery() . ' ORDER BY m.' . MemberTable::MEMBER_NUMBER . ' ASC LIMIT ? OFFSET ?',
-            $this->buildListBindings($status, $planId, $perPage, $offset)
+            $this->buildListQuery($search) . ' ORDER BY m.' . MemberTable::MEMBER_NUMBER . ' ASC LIMIT ? OFFSET ?',
+            $this->buildListBindings($status, $planId, $search, $perPage, $offset)
         );
 
         return array_map(fn(object $row) => new MemberListItemRM(
@@ -88,11 +88,11 @@ final class MemberRepository implements MemberRepositoryInterface
         ), $rows);
     }
 
-    public function countAll(?string $status, ?string $planId): int
+    public function countAll(?string $status, ?string $planId, ?string $search = null): int
     {
         $rows = DB::select(
-            'SELECT COUNT(*) as cnt FROM (' . $this->buildListQuery() . ') AS sub',
-            $this->buildCountBindings($status, $planId)
+            'SELECT COUNT(*) as cnt FROM (' . $this->buildListQuery($search) . ') AS sub',
+            $this->buildCountBindings($status, $planId, $search)
         );
 
         return (int) ($rows[0]->cnt ?? 0);
@@ -124,8 +124,12 @@ final class MemberRepository implements MemberRepositoryInterface
     // Private helpers
     // -------------------------------------------------------------------------
 
-    private function buildListQuery(): string
+    private function buildListQuery(?string $search = null): string
     {
+        $searchClause = $search !== null
+            ? "AND (m.first_name LIKE ? OR m.last_name LIKE ? OR u.email LIKE ? OR CONCAT(m.first_name, ' ', m.last_name) LIKE ?)"
+            : '';
+
         return '
             SELECT
                 m.id,
@@ -150,17 +154,36 @@ final class MemberRepository implements MemberRepositoryInterface
             WHERE m.deleted_at IS NULL
               AND (? IS NULL OR u.status = ?)
               AND (? IS NULL OR mpa.membership_plan_id = ?)
+              ' . $searchClause . '
         ';
     }
 
-    private function buildListBindings(?string $status, ?string $planId, int $perPage, int $offset): array
+    private function buildListBindings(?string $status, ?string $planId, ?string $search, int $perPage, int $offset): array
     {
-        return [$status, $status, $planId, $planId, $perPage, $offset];
+        $bindings = [$status, $status, $planId, $planId];
+        if ($search !== null) {
+            $like       = '%' . $search . '%';
+            $bindings[] = $like;
+            $bindings[] = $like;
+            $bindings[] = $like;
+            $bindings[] = $like;
+        }
+        $bindings[] = $perPage;
+        $bindings[] = $offset;
+        return $bindings;
     }
 
-    private function buildCountBindings(?string $status, ?string $planId): array
+    private function buildCountBindings(?string $status, ?string $planId, ?string $search = null): array
     {
-        return [$status, $status, $planId, $planId];
+        $bindings = [$status, $status, $planId, $planId];
+        if ($search !== null) {
+            $like       = '%' . $search . '%';
+            $bindings[] = $like;
+            $bindings[] = $like;
+            $bindings[] = $like;
+            $bindings[] = $like;
+        }
+        return $bindings;
     }
 
     private function queryDetail(string $whereClause, array $bindings): ?object

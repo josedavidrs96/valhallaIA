@@ -19,6 +19,7 @@ final class ListMembersAction
         $result = $this->handler->handle(new ListMembersQuery(
             status:  $dto->status,
             planId:  $dto->planId,
+            search:  $dto->search,
             page:    $dto->page,
             perPage: $dto->perPage,
         ));
