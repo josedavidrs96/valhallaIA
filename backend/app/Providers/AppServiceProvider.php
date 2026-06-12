@@ -42,6 +42,7 @@ use App\Src\Core\Booking\Application\Queries\GetBookingById\GetBookingByIdHandle
 use App\Src\Core\Booking\Application\Queries\GetMemberBookings\GetMemberBookingsHandler;
 use App\Src\Core\Booking\Application\Queries\GetClassRoster\GetClassRosterHandler;
 use App\Src\Core\Booking\Domain\Repositories\BookingRepositoryInterface;
+use App\Src\Core\Booking\Domain\Services\SessionDateResolver;
 use App\Src\Core\Booking\Infrastructure\Hydrators\BookingHydrator;
 use App\Src\Core\Booking\Infrastructure\Repositories\BookingRepository;
 use App\Src\Shared\Auth\Infrastructure\Repositories\UserRepository;
@@ -176,10 +177,12 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(CreateBookingHandler::class, fn($app) => new CreateBookingHandler(
             $app->make(BookingRepositoryInterface::class),
             $app->make(ClassSessionRepositoryInterface::class),
+            new SessionDateResolver(),
         ));
 
         $this->app->bind(CancelBookingHandler::class, fn($app) => new CancelBookingHandler(
             $app->make(BookingRepositoryInterface::class),
+            $app->make(ClassSessionRepositoryInterface::class),
         ));
 
         $this->app->bind(GetBookingByIdHandler::class, fn($app) => new GetBookingByIdHandler(

@@ -60,12 +60,13 @@ final class CreateMemberHandlerTest extends TestCase
     private function makeActivePlan(): MembershipPlan
     {
         return new MembershipPlan(
-            id:              MembershipPlanId::random(),
-            name:            'Plan 4-5 Dias',
-            slug:            'plan-4-5-dias',
-            priceCents:      4000,
-            classesPerMonth: 25,
-            isActive:        true,
+            id:                 MembershipPlanId::random(),
+            name:               'Plan 4-5 Dias',
+            slug:               'plan-4-5-dias',
+            priceCents:         4000,
+            classesPerMonth:    25,
+            maxWeeklySessions:  5,
+            isActive:           true,
         );
     }
 
@@ -108,12 +109,13 @@ final class CreateMemberHandlerTest extends TestCase
     public function test_throws_plan_not_found_when_plan_inactive(): void
     {
         $inactivePlan = new MembershipPlan(
-            id:              MembershipPlanId::random(),
-            name:            'Old Plan',
-            slug:            'old-plan',
-            priceCents:      2000,
-            classesPerMonth: null,
-            isActive:        false,
+            id:                 MembershipPlanId::random(),
+            name:               'Old Plan',
+            slug:               'old-plan',
+            priceCents:         2000,
+            classesPerMonth:    null,
+            maxWeeklySessions:  3,
+            isActive:           false,
         );
 
         $this->userRepo

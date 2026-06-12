@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Booking;
 
-use App\Src\Core\Booking\Infrastructure\Tables\BookingTable;
 use App\Src\Core\ClassSession\Infrastructure\Tables\ClassSessionTable;
 use App\Src\Core\ClassType\Infrastructure\Tables\ClassTypeTable;
+use App\Src\Core\Member\Infrastructure\Tables\MemberPlanAssignmentTable;
+use App\Src\Core\Member\Infrastructure\Tables\MembershipPlanTable;
 use App\Src\Core\Member\Infrastructure\Tables\MemberTable;
 use App\Src\Shared\Auth\Infrastructure\Persistence\UserModel;
 use App\Src\Shared\Auth\Infrastructure\Tables\UserTable;
@@ -19,29 +20,22 @@ final class CreateBookingTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function createAdmin(): UserModel
-    {
-        $data = [
-            UserTable::ID                   => (string) new Ulid(),
-            UserTable::EMAIL                => 'admin@valhallagym.com',
-            UserTable::PASSWORD             => password_hash('Password123', PASSWORD_BCRYPT),
-            UserTable::ROLE                 => 'admin',
-            UserTable::STATUS               => 'active',
-            UserTable::MUST_CHANGE_PASSWORD => 0,
-        ];
-        UserModel::query()->create($data);
-        return UserModel::find($data[UserTable::ID]);
-    }
-
     private static int $memberCounter = 0;
 
-    private function createMemberUser(string $email = 'member@gym.com'): array
+    protected function setUp(): void
+    {
+        parent::setUp();
+        self::$memberCounter = 0;
+    }
+
+    private function createMemberWithPlan(string $email = 'member@gym.com', int $maxWeekly = 5): array
     {
         self::$memberCounter++;
         $userId   = (string) new Ulid();
         $memberId = (string) new Ulid();
+        $planId   = (string) new Ulid();
 
-        $user = UserModel::query()->create([
+        UserModel::query()->create([
             UserTable::ID                   => $userId,
             UserTable::EMAIL                => $email,
             UserTable::PASSWORD             => password_hash('Password123', PASSWORD_BCRYPT),
@@ -59,13 +53,24 @@ final class CreateBookingTest extends TestCase
             MemberTable::JOIN_DATE     => '2026-06-10',
         ]);
 
-        return ['user' => UserModel::find($userId), 'memberId' => $memberId];
-    }
+        DB::table(MembershipPlanTable::TABLE_NAME)->insert([
+            MembershipPlanTable::ID                 => $planId,
+            MembershipPlanTable::NAME               => 'Plan Test',
+            MembershipPlanTable::SLUG               => 'plan-test-' . self::$memberCounter,
+            MembershipPlanTable::PRICE_CENTS        => 4000,
+            MembershipPlanTable::CLASSES_PER_MONTH  => 25,
+            MembershipPlanTable::MAX_WEEKLY_SESSIONS => $maxWeekly,
+            MembershipPlanTable::IS_ACTIVE          => 1,
+        ]);
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-        self::$memberCounter = 0;
+        DB::table(MemberPlanAssignmentTable::TABLE_NAME)->insert([
+            MemberPlanAssignmentTable::ID                 => (string) new Ulid(),
+            MemberPlanAssignmentTable::MEMBER_ID          => $memberId,
+            MemberPlanAssignmentTable::MEMBERSHIP_PLAN_ID => $planId,
+            MemberPlanAssignmentTable::ASSIGNED_AT        => '2026-01-01',
+        ]);
+
+        return ['user' => UserModel::find($userId), 'memberId' => $memberId, 'planId' => $planId];
     }
 
     private function createClassType(): string
@@ -88,7 +93,7 @@ final class CreateBookingTest extends TestCase
             ClassSessionTable::ID            => $id,
             ClassSessionTable::CLASS_TYPE_ID => $classTypeId,
             ClassSessionTable::DAY_OF_WEEK   => 'monday',
-            ClassSessionTable::TIME_SLOT     => '07:45',
+            ClassSessionTable::TIME_SLOT     => '20:00',
             ClassSessionTable::MAX_CAPACITY  => $capacity,
             ClassSessionTable::STATUS        => $status,
         ]);
@@ -97,21 +102,23 @@ final class CreateBookingTest extends TestCase
 
     public function test_member_can_create_booking(): void
     {
-        $memberData    = $this->createMemberUser();
-        $classTypeId   = $this->createClassType();
-        $sessionId     = $this->createClassSession($classTypeId);
+        $memberData  = $this->createMemberWithPlan();
+        $classTypeId = $this->createClassType();
+        $sessionId   = $this->createClassSession($classTypeId);
 
         $response = $this->actingAs($memberData['user'], 'sanctum')
             ->postJson('/api/member/bookings', ['class_session_id' => $sessionId]);
 
         $response->assertStatus(201)
             ->assertJsonStructure([
-                'id', 'member_id', 'class_session_id', 'status',
+                'id', 'member_id', 'class_session_id', 'session_date', 'status',
                 'session' => ['day_of_week', 'time_slot', 'class_type_name', 'class_type_slug'],
                 'created_at',
             ])
             ->assertJsonPath('status', 'confirmed')
             ->assertJsonPath('class_session_id', $sessionId);
+
+        $this->assertNotNull($response->json('session_date'));
     }
 
     public function test_unauthenticated_returns_401(): void
@@ -119,57 +126,124 @@ final class CreateBookingTest extends TestCase
         $classTypeId = $this->createClassType();
         $sessionId   = $this->createClassSession($classTypeId);
 
-        $response = $this->postJson('/api/member/bookings', ['class_session_id' => $sessionId]);
-        $response->assertStatus(401);
+        $this->postJson('/api/member/bookings', ['class_session_id' => $sessionId])
+            ->assertStatus(401);
     }
 
     public function test_booking_same_session_twice_returns_409(): void
     {
-        $memberData  = $this->createMemberUser();
+        $memberData  = $this->createMemberWithPlan();
         $classTypeId = $this->createClassType();
         $sessionId   = $this->createClassSession($classTypeId);
 
         $this->actingAs($memberData['user'], 'sanctum')
             ->postJson('/api/member/bookings', ['class_session_id' => $sessionId]);
 
-        $response = $this->actingAs($memberData['user'], 'sanctum')
-            ->postJson('/api/member/bookings', ['class_session_id' => $sessionId]);
-
-        $response->assertStatus(409)
+        $this->actingAs($memberData['user'], 'sanctum')
+            ->postJson('/api/member/bookings', ['class_session_id' => $sessionId])
+            ->assertStatus(409)
             ->assertJsonPath('code', 'BOOKING_ALREADY_EXISTS');
     }
 
     public function test_session_full_returns_422(): void
     {
-        $member1Data = $this->createMemberUser('member1@gym.com');
-        $member2Data = $this->createMemberUser('member2@gym.com');
-
+        $member1Data = $this->createMemberWithPlan('member1@gym.com');
+        $member2Data = $this->createMemberWithPlan('member2@gym.com');
         $classTypeId = $this->createClassType();
-        $sessionId   = $this->createClassSession($classTypeId, 1); // capacity = 1
+        $sessionId   = $this->createClassSession($classTypeId, 1);
 
-        // First booking — should succeed
         $this->actingAs($member1Data['user'], 'sanctum')
             ->postJson('/api/member/bookings', ['class_session_id' => $sessionId])
             ->assertStatus(201);
 
-        // Second booking — session full
-        $response = $this->actingAs($member2Data['user'], 'sanctum')
-            ->postJson('/api/member/bookings', ['class_session_id' => $sessionId]);
-
-        $response->assertStatus(422)
+        $this->actingAs($member2Data['user'], 'sanctum')
+            ->postJson('/api/member/bookings', ['class_session_id' => $sessionId])
+            ->assertStatus(422)
             ->assertJsonPath('code', 'SESSION_FULL');
     }
 
     public function test_cancelled_session_returns_422(): void
     {
-        $memberData  = $this->createMemberUser();
+        $memberData  = $this->createMemberWithPlan();
         $classTypeId = $this->createClassType();
         $sessionId   = $this->createClassSession($classTypeId, 20, 'cancelled');
 
-        $response = $this->actingAs($memberData['user'], 'sanctum')
-            ->postJson('/api/member/bookings', ['class_session_id' => $sessionId]);
-
-        $response->assertStatus(422)
+        $this->actingAs($memberData['user'], 'sanctum')
+            ->postJson('/api/member/bookings', ['class_session_id' => $sessionId])
+            ->assertStatus(422)
             ->assertJsonPath('code', 'SESSION_NOT_AVAILABLE');
+    }
+
+    public function test_member_without_plan_returns_422(): void
+    {
+        // Create member without plan assignment
+        $userId   = (string) new Ulid();
+        $memberId = (string) new Ulid();
+
+        UserModel::query()->create([
+            UserTable::ID                   => $userId,
+            UserTable::EMAIL                => 'noplan@gym.com',
+            UserTable::PASSWORD             => password_hash('Password123', PASSWORD_BCRYPT),
+            UserTable::ROLE                 => 'member',
+            UserTable::STATUS               => 'active',
+            UserTable::MUST_CHANGE_PASSWORD => 0,
+        ]);
+
+        DB::table(MemberTable::TABLE_NAME)->insert([
+            MemberTable::ID            => $memberId,
+            MemberTable::USER_ID       => $userId,
+            MemberTable::MEMBER_NUMBER => 99,
+            MemberTable::FIRST_NAME    => 'Sin',
+            MemberTable::LAST_NAME     => 'Plan',
+            MemberTable::JOIN_DATE     => '2026-06-10',
+        ]);
+
+        $user        = UserModel::find($userId);
+        $classTypeId = $this->createClassType();
+        $sessionId   = $this->createClassSession($classTypeId);
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson('/api/member/bookings', ['class_session_id' => $sessionId])
+            ->assertStatus(422)
+            ->assertJsonPath('code', 'MEMBER_HAS_NO_PLAN');
+    }
+
+    public function test_weekly_limit_reached_returns_422(): void
+    {
+        // Plan with weekly limit of 1
+        $memberData  = $this->createMemberWithPlan('limited@gym.com', 1);
+        $classTypeId = $this->createClassType();
+
+        // First session (different slot to avoid duplicate check)
+        $session1Id = (string) new Ulid();
+        DB::table(ClassSessionTable::TABLE_NAME)->insert([
+            ClassSessionTable::ID            => $session1Id,
+            ClassSessionTable::CLASS_TYPE_ID => $classTypeId,
+            ClassSessionTable::DAY_OF_WEEK   => 'monday',
+            ClassSessionTable::TIME_SLOT     => '07:45',
+            ClassSessionTable::MAX_CAPACITY  => 20,
+            ClassSessionTable::STATUS        => 'active',
+        ]);
+
+        $session2Id = (string) new Ulid();
+        DB::table(ClassSessionTable::TABLE_NAME)->insert([
+            ClassSessionTable::ID            => $session2Id,
+            ClassSessionTable::CLASS_TYPE_ID => $classTypeId,
+            ClassSessionTable::DAY_OF_WEEK   => 'tuesday',
+            ClassSessionTable::TIME_SLOT     => '07:45',
+            ClassSessionTable::MAX_CAPACITY  => 20,
+            ClassSessionTable::STATUS        => 'active',
+        ]);
+
+        // First booking succeeds
+        $this->actingAs($memberData['user'], 'sanctum')
+            ->postJson('/api/member/bookings', ['class_session_id' => $session1Id])
+            ->assertStatus(201);
+
+        // Second booking this week hits the limit
+        $this->actingAs($memberData['user'], 'sanctum')
+            ->postJson('/api/member/bookings', ['class_session_id' => $session2Id])
+            ->assertStatus(422)
+            ->assertJsonPath('code', 'WEEKLY_LIMIT_REACHED');
     }
 }

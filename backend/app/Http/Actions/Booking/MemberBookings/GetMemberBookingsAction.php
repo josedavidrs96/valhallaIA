@@ -28,8 +28,12 @@ final class GetMemberBookingsAction
             return response()->json(['error' => 'Socio no encontrado', 'code' => 'MEMBER_NOT_FOUND'], 404);
         }
 
-        $bookings = $this->handler->handle(new GetMemberBookingsQuery($member->id));
+        $result = $this->handler->handle(new GetMemberBookingsQuery($member->id));
 
-        return (new BookingListResource($bookings))->toResponse();
+        return (new BookingListResource(
+            $result['bookings'],
+            $result['weekly_used'],
+            $result['weekly_max'],
+        ))->toResponse();
     }
 }

@@ -1,9 +1,5 @@
 import api from './api'
-import type { Booking } from '@/types/booking'
-
-interface BookingsListResponse {
-  data: Booking[]
-}
+import type { Booking, BookingsListResponse } from '@/types/booking'
 
 export const bookingsService = {
   // Admin

@@ -16,6 +16,8 @@ use App\Src\Core\Booking\Infrastructure\Persistence\BookingModel;
 use App\Src\Core\Booking\Infrastructure\Tables\BookingTable;
 use App\Src\Core\ClassSession\Domain\ValueObjects\ClassSessionId;
 use App\Src\Core\Member\Domain\ValueObjects\MemberId;
+use App\Src\Core\Member\Infrastructure\Tables\MemberPlanAssignmentTable;
+use App\Src\Core\Member\Infrastructure\Tables\MembershipPlanTable;
 use Illuminate\Support\Facades\DB;
 
 final class BookingRepository implements BookingRepositoryInterface
@@ -42,6 +44,7 @@ final class BookingRepository implements BookingRepositoryInterface
                 'b.id',
                 'b.member_id',
                 'b.class_session_id',
+                'b.session_date',
                 'b.status',
                 'b.created_at',
                 'cs.day_of_week',
@@ -60,6 +63,7 @@ final class BookingRepository implements BookingRepositoryInterface
             id:             $row->id,
             memberId:       $row->member_id,
             classSessionId: $row->class_session_id,
+            sessionDate:    $row->session_date,
             status:         $row->status,
             dayOfWeek:      $row->day_of_week,
             timeSlot:       $row->time_slot,
@@ -80,12 +84,55 @@ final class BookingRepository implements BookingRepositoryInterface
         return $model ? $this->hydrator->hydrate($model) : null;
     }
 
+    public function findByMemberSessionAndDate(
+        MemberId $memberId, ClassSessionId $sessionId, \DateTimeImmutable $sessionDate
+    ): ?Booking {
+        $model = BookingModel::query()
+            ->where(BookingTable::MEMBER_ID, $memberId->value())
+            ->where(BookingTable::CLASS_SESSION_ID, $sessionId->value())
+            ->where(BookingTable::SESSION_DATE, $sessionDate->format('Y-m-d'))
+            ->where(BookingTable::STATUS, BookingStatus::Confirmed->value)
+            ->first();
+
+        return $model ? $this->hydrator->hydrate($model) : null;
+    }
+
     public function countConfirmedBySession(ClassSessionId $sessionId): int
     {
         return BookingModel::query()
             ->where(BookingTable::CLASS_SESSION_ID, $sessionId->value())
             ->where(BookingTable::STATUS, BookingStatus::Confirmed->value)
             ->count();
+    }
+
+    public function countConfirmedForMemberInWeek(
+        MemberId $memberId, \DateTimeImmutable $weekStart, \DateTimeImmutable $weekEnd
+    ): int {
+        return BookingModel::query()
+            ->where(BookingTable::MEMBER_ID, $memberId->value())
+            ->where(BookingTable::STATUS, BookingStatus::Confirmed->value)
+            ->whereBetween(BookingTable::SESSION_DATE, [
+                $weekStart->format('Y-m-d'),
+                $weekEnd->format('Y-m-d'),
+            ])
+            ->count();
+    }
+
+    public function findActivePlanMaxWeeklyForMember(MemberId $memberId): ?int
+    {
+        $row = DB::table(MemberPlanAssignmentTable::TABLE_NAME . ' as mpa')
+            ->join(
+                MembershipPlanTable::TABLE_NAME . ' as mp',
+                'mp.' . MembershipPlanTable::ID,
+                '=',
+                'mpa.' . MemberPlanAssignmentTable::MEMBERSHIP_PLAN_ID
+            )
+            ->select('mp.' . MembershipPlanTable::MAX_WEEKLY_SESSIONS)
+            ->where('mpa.' . MemberPlanAssignmentTable::MEMBER_ID, $memberId->value())
+            ->orderByDesc('mpa.' . MemberPlanAssignmentTable::ASSIGNED_AT)
+            ->first();
+
+        return $row ? (int) $row->{MembershipPlanTable::MAX_WEEKLY_SESSIONS} : null;
     }
 
     public function save(Booking $booking): void
@@ -105,6 +152,7 @@ final class BookingRepository implements BookingRepositoryInterface
                 'b.id',
                 'b.member_id',
                 'b.class_session_id',
+                'b.session_date',
                 'b.status',
                 'b.created_at',
                 'cs.day_of_week',
@@ -113,6 +161,7 @@ final class BookingRepository implements BookingRepositoryInterface
                 'ct.slug as class_type_slug'
             )
             ->where('b.member_id', $memberId->value())
+            ->orderBy('b.session_date', 'desc')
             ->orderBy('b.created_at', 'desc')
             ->get();
 
@@ -120,6 +169,7 @@ final class BookingRepository implements BookingRepositoryInterface
             id:             $row->id,
             memberId:       $row->member_id,
             classSessionId: $row->class_session_id,
+            sessionDate:    $row->session_date,
             status:         $row->status,
             dayOfWeek:      $row->day_of_week,
             timeSlot:       $row->time_slot,

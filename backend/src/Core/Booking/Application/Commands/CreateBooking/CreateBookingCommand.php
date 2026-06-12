@@ -11,8 +11,9 @@ use App\Src\Core\Member\Domain\ValueObjects\MemberId;
 final readonly class CreateBookingCommand
 {
     public function __construct(
-        public BookingId       $id,
-        public MemberId        $memberId,
-        public ClassSessionId  $classSessionId,
+        public BookingId          $id,
+        public MemberId           $memberId,
+        public ClassSessionId     $classSessionId,
+        public \DateTimeImmutable $sessionDate,
     ) {}
 }

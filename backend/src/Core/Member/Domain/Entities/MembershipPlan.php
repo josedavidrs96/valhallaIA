@@ -14,6 +14,7 @@ final class MembershipPlan
         public readonly string           $slug,
         public readonly int              $priceCents,
         public readonly ?int             $classesPerMonth,
+        public readonly int              $maxWeeklySessions,
         public readonly bool             $isActive,
     ) {}
 }

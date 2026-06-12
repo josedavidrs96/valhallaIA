@@ -10,8 +10,10 @@ use App\Src\Core\Booking\Application\Commands\CreateBooking\CreateBookingHandler
 use App\Src\Core\Booking\Application\Queries\GetBookingById\GetBookingByIdHandler;
 use App\Src\Core\Booking\Application\Queries\GetBookingById\GetBookingByIdQuery;
 use App\Src\Core\Booking\Domain\Exceptions\BookingAlreadyExistsException;
+use App\Src\Core\Booking\Domain\Exceptions\MemberHasNoPlanException;
 use App\Src\Core\Booking\Domain\Exceptions\SessionFullException;
 use App\Src\Core\Booking\Domain\Exceptions\SessionNotAvailableException;
+use App\Src\Core\Booking\Domain\Exceptions\WeeklyLimitReachedException;
 use App\Src\Core\Booking\Domain\ValueObjects\BookingId;
 use App\Src\Core\ClassSession\Domain\Exceptions\ClassSessionNotFoundException;
 use App\Src\Core\ClassSession\Domain\ValueObjects\ClassSessionId;
@@ -44,6 +46,7 @@ final class CreateBookingAction
                 $bookingId,
                 $member->id,
                 ClassSessionId::fromString($dto->classSessionId),
+                new \DateTimeImmutable('now', new \DateTimeZone(config('app.timezone', 'Europe/Madrid'))),
             ));
         } catch (ClassSessionNotFoundException) {
             return response()->json(['error' => 'Sesion no encontrada', 'code' => 'SESSION_NOT_FOUND'], 404);
@@ -53,6 +56,15 @@ final class CreateBookingAction
             return response()->json(['error' => 'La sesion esta completa', 'code' => 'SESSION_FULL'], 422);
         } catch (BookingAlreadyExistsException) {
             return response()->json(['error' => 'Ya tienes una reserva para esta sesion', 'code' => 'BOOKING_ALREADY_EXISTS'], 409);
+        } catch (MemberHasNoPlanException) {
+            return response()->json(['error' => 'No tienes un plan activo', 'code' => 'MEMBER_HAS_NO_PLAN'], 422);
+        } catch (WeeklyLimitReachedException $e) {
+            return response()->json([
+                'error'       => 'Has alcanzado el limite semanal de tu plan',
+                'code'        => 'WEEKLY_LIMIT_REACHED',
+                'weekly_used' => $e->used,
+                'weekly_max'  => $e->max,
+            ], 422);
         }
 
         $rm = $this->query->handle(new GetBookingByIdQuery($bookingId));

@@ -24,7 +24,7 @@ final class CancelBookingTest extends TestCase
         $userId   = (string) new Ulid();
         $memberId = (string) new Ulid();
 
-        $user = UserModel::query()->create([
+        UserModel::query()->create([
             UserTable::ID                   => $userId,
             UserTable::EMAIL                => $email,
             UserTable::PASSWORD             => password_hash('Password123', PASSWORD_BCRYPT),
@@ -45,13 +45,13 @@ final class CancelBookingTest extends TestCase
         return ['user' => UserModel::find($userId), 'memberId' => $memberId];
     }
 
-    private function createClassSession(): string
+    private function createClassSession(string $timeSlot = '20:00', string $dayOfWeek = 'monday'): string
     {
         $classTypeId = (string) new Ulid();
         DB::table(ClassTypeTable::TABLE_NAME)->insert([
             ClassTypeTable::ID        => $classTypeId,
             ClassTypeTable::NAME      => 'Tren Superior',
-            ClassTypeTable::SLUG      => 'tren-superior',
+            ClassTypeTable::SLUG      => 'tren-superior-' . uniqid(),
             ClassTypeTable::COLOR     => '#2563eb',
             ClassTypeTable::IS_ACTIVE => 1,
         ]);
@@ -60,8 +60,8 @@ final class CancelBookingTest extends TestCase
         DB::table(ClassSessionTable::TABLE_NAME)->insert([
             ClassSessionTable::ID            => $sessionId,
             ClassSessionTable::CLASS_TYPE_ID => $classTypeId,
-            ClassSessionTable::DAY_OF_WEEK   => 'monday',
-            ClassSessionTable::TIME_SLOT     => '07:45',
+            ClassSessionTable::DAY_OF_WEEK   => $dayOfWeek,
+            ClassSessionTable::TIME_SLOT     => $timeSlot,
             ClassSessionTable::MAX_CAPACITY  => 20,
             ClassSessionTable::STATUS        => 'active',
         ]);
@@ -69,13 +69,14 @@ final class CancelBookingTest extends TestCase
         return $sessionId;
     }
 
-    private function createBooking(string $memberId, string $sessionId, string $status = 'confirmed'): string
+    private function createBooking(string $memberId, string $sessionId, string $status = 'confirmed', string $sessionDate = '2099-12-31'): string
     {
         $bookingId = (string) new Ulid();
         DB::table(BookingTable::TABLE_NAME)->insert([
             BookingTable::ID               => $bookingId,
             BookingTable::MEMBER_ID        => $memberId,
             BookingTable::CLASS_SESSION_ID => $sessionId,
+            BookingTable::SESSION_DATE     => $sessionDate,
             BookingTable::STATUS           => $status,
         ]);
         return $bookingId;
@@ -87,10 +88,9 @@ final class CancelBookingTest extends TestCase
         $sessionId  = $this->createClassSession();
         $bookingId  = $this->createBooking($memberData['memberId'], $sessionId);
 
-        $response = $this->actingAs($memberData['user'], 'sanctum')
-            ->patchJson("/api/member/bookings/{$bookingId}/cancel");
-
-        $response->assertStatus(200)
+        $this->actingAs($memberData['user'], 'sanctum')
+            ->patchJson("/api/member/bookings/{$bookingId}/cancel")
+            ->assertStatus(200)
             ->assertJsonPath('status', 'cancelled');
     }
 
@@ -99,10 +99,9 @@ final class CancelBookingTest extends TestCase
         $memberData = $this->createMemberUser();
         $fakeId     = (string) new Ulid();
 
-        $response = $this->actingAs($memberData['user'], 'sanctum')
-            ->patchJson("/api/member/bookings/{$fakeId}/cancel");
-
-        $response->assertStatus(404)
+        $this->actingAs($memberData['user'], 'sanctum')
+            ->patchJson("/api/member/bookings/{$fakeId}/cancel")
+            ->assertStatus(404)
             ->assertJsonPath('code', 'BOOKING_NOT_FOUND');
     }
 
@@ -113,10 +112,9 @@ final class CancelBookingTest extends TestCase
         $sessionId   = $this->createClassSession();
         $bookingId   = $this->createBooking($member1Data['memberId'], $sessionId);
 
-        $response = $this->actingAs($member2Data['user'], 'sanctum')
-            ->patchJson("/api/member/bookings/{$bookingId}/cancel");
-
-        $response->assertStatus(403)
+        $this->actingAs($member2Data['user'], 'sanctum')
+            ->patchJson("/api/member/bookings/{$bookingId}/cancel")
+            ->assertStatus(403)
             ->assertJsonPath('code', 'BOOKING_NOT_OWNED');
     }
 
@@ -126,10 +124,22 @@ final class CancelBookingTest extends TestCase
         $sessionId  = $this->createClassSession();
         $bookingId  = $this->createBooking($memberData['memberId'], $sessionId, 'cancelled');
 
-        $response = $this->actingAs($memberData['user'], 'sanctum')
-            ->patchJson("/api/member/bookings/{$bookingId}/cancel");
-
-        $response->assertStatus(422)
+        $this->actingAs($memberData['user'], 'sanctum')
+            ->patchJson("/api/member/bookings/{$bookingId}/cancel")
+            ->assertStatus(422)
             ->assertJsonPath('code', 'BOOKING_ALREADY_CANCELLED');
+    }
+
+    public function test_cancellation_window_expired_returns_422(): void
+    {
+        $memberData = $this->createMemberUser();
+        $sessionId  = $this->createClassSession('07:45', 'monday');
+        // Past session date — cancellation window expired
+        $bookingId  = $this->createBooking($memberData['memberId'], $sessionId, 'confirmed', '2026-01-05');
+
+        $this->actingAs($memberData['user'], 'sanctum')
+            ->patchJson("/api/member/bookings/{$bookingId}/cancel")
+            ->assertStatus(422)
+            ->assertJsonPath('code', 'CANCELLATION_WINDOW_EXPIRED');
     }
 }

@@ -20,6 +20,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   SESSION_FULL:              'La sesion esta completa',
   BOOKING_ALREADY_EXISTS:    'Ya tienes una reserva para esta sesion',
   SESSION_NOT_AVAILABLE:     'La sesion no esta disponible',
+  MEMBER_HAS_NO_PLAN:        'No tienes un plan activo',
+  WEEKLY_LIMIT_REACHED:      'Has alcanzado el limite de clases de tu plan esta semana',
 }
 
 type ScheduleResponse = Record<string, ClassSession[]>
@@ -32,6 +34,15 @@ export default function MemberSchedulePage() {
     queryFn: () => memberProfileService.getSchedule().then(r => r.data as ScheduleResponse),
   })
 
+  const { data: bookingsData } = useQuery({
+    queryKey: ['my-bookings'],
+    queryFn: () => bookingsService.myBookings().then(r => r.data),
+  })
+
+  const weeklyUsed = bookingsData?.weekly_used ?? 0
+  const weeklyMax  = bookingsData?.weekly_max ?? 0
+  const limitReached = weeklyMax > 0 && weeklyUsed >= weeklyMax
+
   const bookMutation = useMutation({
     mutationFn: (sessionId: string) =>
       bookingsService.create(sessionId).then(r => r.data),
@@ -42,12 +53,10 @@ export default function MemberSchedulePage() {
     onError: (err: unknown) => {
       const axiosErr = err as { response?: { data?: { code?: string; message?: string } } }
       const code = axiosErr?.response?.data?.code ?? ''
-      const msg  = ERROR_MESSAGES[code] ?? axiosErr?.response?.data?.message ?? 'Error al reservar'
-      toast.error(msg)
+      toast.error(ERROR_MESSAGES[code] ?? axiosErr?.response?.data?.message ?? 'Error al reservar')
     },
   })
 
-  // Sort days and flatten sessions
   const sessions: ClassSession[] = data
     ? Object.entries(data)
         .sort(([a], [b]) => (DAY_ORDER[a] ?? 99) - (DAY_ORDER[b] ?? 99))
@@ -66,9 +75,23 @@ export default function MemberSchedulePage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Horario de clases</h1>
-        <p className="text-slate-400 text-sm mt-1">Selecciona una clase para reservar tu plaza</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Horario de clases</h1>
+          <p className="text-slate-400 text-sm mt-1">Selecciona una clase para reservar tu plaza</p>
+        </div>
+        {weeklyMax > 0 && (
+          <div className={`rounded-xl px-4 py-3 text-right flex-shrink-0 ${limitReached ? 'bg-red-900/30 border border-red-800' : 'bg-slate-800'}`}>
+            <p className="text-xs text-slate-400 uppercase tracking-wider">Clases esta semana</p>
+            <p className={`text-2xl font-bold mt-0.5 ${limitReached ? 'text-red-400' : 'text-white'}`}>
+              {weeklyUsed}
+              <span className="text-slate-500 text-base font-normal"> / {weeklyMax}</span>
+            </p>
+            {limitReached && (
+              <p className="text-xs text-red-400 mt-1">Limite alcanzado</p>
+            )}
+          </div>
+        )}
       </div>
 
       {sessions.length === 0 ? (
@@ -80,7 +103,7 @@ export default function MemberSchedulePage() {
           {sessions.map(session => {
             const isFull      = session.max_capacity <= 0
             const isInactive  = session.status !== 'active'
-            const isDisabled  = isFull || isInactive || bookMutation.isPending
+            const isDisabled  = isFull || isInactive || limitReached || bookMutation.isPending
 
             return (
               <div
@@ -106,6 +129,11 @@ export default function MemberSchedulePage() {
                   {isFull && !isInactive && (
                     <span className="text-xs text-red-400 bg-red-900/30 px-2 py-0.5 rounded">
                       Completa
+                    </span>
+                  )}
+                  {limitReached && !isFull && !isInactive && (
+                    <span className="text-xs text-amber-400 bg-amber-900/30 px-2 py-0.5 rounded">
+                      Limite semanal
                     </span>
                   )}
                   <button

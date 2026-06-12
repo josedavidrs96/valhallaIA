@@ -147,6 +147,23 @@ management: public website + member management + class schedule + payment tracki
 | 3 | epic-booking | ✅ Done | 100% |
 | 3 | epic-payments | ✅ Done | 100% |
 
+## Phase 4: Iterations & Improvements
+
+| Epic | Description | Dependencies | Status |
+|------|-------------|--------------|--------|
+| [epic-booking-rules](epics/epic-booking-rules/requirements.md) | Weekly booking limit per plan + cancellation cutoff (no cancel past classes or after start time) | epic-booking | 🚧 In Progress |
+| [epic-booking-ux](epics/epic-booking-ux/requirements.md) | Reorganize booking views with tabs (upcoming / past / cancelled) and better UX | epic-booking-rules | ⬜ Not Started |
+| [epic-performance](epics/epic-performance/requirements.md) | Frontend prefetching, React Query cache tuning, backend N+1 fixes | All Phase 3 | ⬜ Not Started |
+| [epic-invoices](epics/epic-invoices/requirements.md) | Simple monthly invoice PDF per payment, downloadable by admin and member | epic-payments | ⬜ Not Started |
+| [epic-notifications](epics/epic-notifications/requirements.md) | Admin sends email notification to overdue members | epic-payments | ⬜ Not Started |
+| [epic-corporate](epics/epic-corporate/requirements.md) | Public landing: real logo, trainers section, gym location, full branding | epic-public-site | ⬜ Not Started |
+| [epic-auto-close](epics/epic-auto-close/requirements.md) | Sessions auto-close when their scheduled time passes (no manual action needed) | epic-classes | ⬜ Not Started |
+| [epic-member-stats](epics/epic-member-stats/requirements.md) | Member dashboard: classes/week, attendance rate, next renewal date | epic-booking | ⬜ Not Started |
+| [epic-waitlist](epics/epic-waitlist/requirements.md) | Waitlist for full sessions — notify member if a spot opens | epic-booking | ⬜ Not Started |
+| [epic-chat](epics/epic-chat/requirements.md) | Real-time chat between members and coaches (WebSockets) — LOW PRIORITY | epic-foundation | ⬜ Not Started |
+
+---
+
 ## Status Legend
 
 | Status | Symbol | Meaning |
@@ -165,10 +182,18 @@ management: public website + member management + class schedule + payment tracki
 - epic-booking requires BOTH epic-members and epic-classes to be complete
 - epic-payments only requires epic-members
 - Weekend class schedule is not in scope for MVP — TBD with gym owner
+- epic-auto-close: sessions close automatically when time passes — no manual admin/coach action required
+- epic-chat: marked low probability — requires WebSockets infrastructure (Pusher/Laravel Echo)
 
 ## Bug Fixes & Improvements Log
 
 ```
+2026-06-11 (session 2):
+- Started: Phase 4 — iterations post-MVP testing.
+  - Identified bugs: weekly booking limit not enforced, expired bookings cancellable.
+  - Identified UX issues: booking list needs tabs, performance slow between pages.
+  - New epics planned: booking-rules, booking-ux, performance, invoices, notifications, corporate, auto-close, member-stats, waitlist, chat.
+
 2026-06-11:
 - Done: Phase 3 complete — 183/183 tests passing.
   - epic-booking: Core/Booking BC. CreateBooking (capacity enforcement), CancelBooking, GetMemberBookings, GetClassRoster, GetAdminMemberBookings. 20 new tests.

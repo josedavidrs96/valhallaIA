@@ -9,7 +9,11 @@ use Illuminate\Http\JsonResponse;
 
 final class BookingListResource
 {
-    public function __construct(private readonly array $items) {}
+    public function __construct(
+        private readonly array $items,
+        private readonly int   $weeklyUsed = 0,
+        private readonly int   $weeklyMax  = 0,
+    ) {}
 
     public function toResponse(): JsonResponse
     {
@@ -17,6 +21,7 @@ final class BookingListResource
             'data' => array_map(fn(BookingRM $rm) => [
                 'id'               => $rm->id,
                 'class_session_id' => $rm->classSessionId,
+                'session_date'     => $rm->sessionDate,
                 'status'           => $rm->status,
                 'session'          => [
                     'day_of_week'     => $rm->dayOfWeek,
@@ -26,6 +31,8 @@ final class BookingListResource
                 ],
                 'created_at' => $rm->createdAt,
             ], $this->items),
+            'weekly_used' => $this->weeklyUsed,
+            'weekly_max'  => $this->weeklyMax,
         ]);
     }
 }

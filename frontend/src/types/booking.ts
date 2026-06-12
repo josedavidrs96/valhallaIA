@@ -2,6 +2,7 @@ export interface Booking {
   id: string
   member_id: string
   class_session_id: string
+  session_date: string
   status: string
   session: {
     day_of_week: string
@@ -10,6 +11,12 @@ export interface Booking {
     class_type_slug: string
   }
   created_at: string | null
+}
+
+export interface BookingsListResponse {
+  data: Booking[]
+  weekly_used: number
+  weekly_max: number
 }
 
 export interface RosterItem {

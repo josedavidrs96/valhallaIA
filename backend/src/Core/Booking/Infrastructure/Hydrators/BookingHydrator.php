@@ -20,6 +20,7 @@ final class BookingHydrator
             id:             BookingId::fromString((string) $model->{BookingTable::ID}),
             memberId:       MemberId::fromString((string) $model->{BookingTable::MEMBER_ID}),
             classSessionId: ClassSessionId::fromString((string) $model->{BookingTable::CLASS_SESSION_ID}),
+            sessionDate:    new \DateTimeImmutable((string) $model->{BookingTable::SESSION_DATE}),
             status:         BookingStatus::from((string) $model->{BookingTable::STATUS}),
             createdAt:      $model->{BookingTable::CREATED_AT}
                                 ? new \DateTimeImmutable((string) $model->{BookingTable::CREATED_AT})
@@ -33,6 +34,7 @@ final class BookingHydrator
             BookingTable::ID               => $booking->id->value(),
             BookingTable::MEMBER_ID        => $booking->memberId->value(),
             BookingTable::CLASS_SESSION_ID => $booking->classSessionId->value(),
+            BookingTable::SESSION_DATE     => $booking->sessionDate->format('Y-m-d'),
             BookingTable::STATUS           => $booking->status()->value,
         ];
     }

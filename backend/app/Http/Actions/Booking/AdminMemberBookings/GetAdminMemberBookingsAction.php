@@ -20,8 +20,12 @@ final class GetAdminMemberBookingsAction
     public function __invoke(Request $request, string $id): JsonResponse
     {
         $memberId = MemberId::fromString($id);
-        $bookings = $this->handler->handle(new GetMemberBookingsQuery($memberId));
+        $result   = $this->handler->handle(new GetMemberBookingsQuery($memberId));
 
-        return (new BookingListResource($bookings))->toResponse();
+        return (new BookingListResource(
+            $result['bookings'],
+            $result['weekly_used'],
+            $result['weekly_max'],
+        ))->toResponse();
     }
 }

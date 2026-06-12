@@ -13,8 +13,9 @@ final class MembershipPlanTable
     public const SLUG        = 'slug';
     public const DESCRIPTION = 'description';
     public const PRICE_CENTS = 'price_cents';
-    public const CLASSES_PER_MONTH = 'classes_per_month';
-    public const IS_ACTIVE   = 'is_active';
+    public const CLASSES_PER_MONTH   = 'classes_per_month';
+    public const MAX_WEEKLY_SESSIONS = 'max_weekly_sessions';
+    public const IS_ACTIVE           = 'is_active';
     public const CREATED_AT  = 'created_at';
     public const UPDATED_AT  = 'updated_at';
 }

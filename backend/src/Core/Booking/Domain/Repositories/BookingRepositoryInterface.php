@@ -22,7 +22,17 @@ interface BookingRepositoryInterface
 
     public function findByMemberAndSession(MemberId $memberId, ClassSessionId $sessionId): ?Booking;
 
+    public function findByMemberSessionAndDate(
+        MemberId $memberId, ClassSessionId $sessionId, \DateTimeImmutable $sessionDate
+    ): ?Booking;
+
     public function countConfirmedBySession(ClassSessionId $sessionId): int;
+
+    public function countConfirmedForMemberInWeek(
+        MemberId $memberId, \DateTimeImmutable $weekStart, \DateTimeImmutable $weekEnd
+    ): int;
+
+    public function findActivePlanMaxWeeklyForMember(MemberId $memberId): ?int;
 
     public function save(Booking $booking): void;
 

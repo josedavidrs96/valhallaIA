@@ -10,6 +10,7 @@ final class BookingTable
     public const ID               = 'id';
     public const MEMBER_ID        = 'member_id';
     public const CLASS_SESSION_ID = 'class_session_id';
+    public const SESSION_DATE     = 'session_date';
     public const STATUS           = 'status';
     public const CREATED_AT       = 'created_at';
     public const UPDATED_AT       = 'updated_at';

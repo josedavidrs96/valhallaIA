@@ -12,6 +12,7 @@ use App\Src\Core\Booking\Application\Queries\GetBookingById\GetBookingByIdQuery;
 use App\Src\Core\Booking\Domain\Exceptions\BookingAlreadyCancelledException;
 use App\Src\Core\Booking\Domain\Exceptions\BookingNotFoundException;
 use App\Src\Core\Booking\Domain\Exceptions\BookingNotOwnedException;
+use App\Src\Core\Booking\Domain\Exceptions\CancellationWindowExpiredException;
 use App\Src\Core\Booking\Domain\ValueObjects\BookingId;
 use App\Src\Core\Member\Domain\Repositories\MemberRepositoryInterface;
 use App\Src\Shared\Auth\Domain\ValueObjects\UserId;
@@ -45,6 +46,8 @@ final class CancelBookingAction
             return response()->json(['error' => 'No tienes permiso para cancelar esta reserva', 'code' => 'BOOKING_NOT_OWNED'], 403);
         } catch (BookingAlreadyCancelledException) {
             return response()->json(['error' => 'La reserva ya esta cancelada', 'code' => 'BOOKING_ALREADY_CANCELLED'], 422);
+        } catch (CancellationWindowExpiredException) {
+            return response()->json(['error' => 'No puedes cancelar una sesion que ya ha pasado', 'code' => 'CANCELLATION_WINDOW_EXPIRED'], 422);
         }
 
         $rm = $this->query->handle(new GetBookingByIdQuery($bookingId));

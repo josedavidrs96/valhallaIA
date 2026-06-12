@@ -18,6 +18,7 @@ final class BookingModel extends Model
         BookingTable::ID,
         BookingTable::MEMBER_ID,
         BookingTable::CLASS_SESSION_ID,
+        BookingTable::SESSION_DATE,
         BookingTable::STATUS,
     ];
 

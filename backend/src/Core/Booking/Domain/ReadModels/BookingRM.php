@@ -10,6 +10,7 @@ final readonly class BookingRM
         public string  $id,
         public string  $memberId,
         public string  $classSessionId,
+        public string  $sessionDate,
         public string  $status,
         public string  $dayOfWeek,
         public string  $timeSlot,

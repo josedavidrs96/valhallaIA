@@ -15,18 +15,23 @@ final class Booking
     private BookingStatus $status;
 
     public function __construct(
-        public readonly BookingId $id,
-        public readonly MemberId $memberId,
-        public readonly ClassSessionId $classSessionId,
+        public readonly BookingId         $id,
+        public readonly MemberId          $memberId,
+        public readonly ClassSessionId    $classSessionId,
+        public readonly \DateTimeImmutable $sessionDate,
         BookingStatus $status,
         public readonly \DateTimeImmutable $createdAt,
     ) {
         $this->status = $status;
     }
 
-    public static function create(BookingId $id, MemberId $memberId, ClassSessionId $classSessionId): self
-    {
-        return new self($id, $memberId, $classSessionId, BookingStatus::Confirmed, new \DateTimeImmutable());
+    public static function create(
+        BookingId          $id,
+        MemberId           $memberId,
+        ClassSessionId     $classSessionId,
+        \DateTimeImmutable $sessionDate,
+    ): self {
+        return new self($id, $memberId, $classSessionId, $sessionDate, BookingStatus::Confirmed, new \DateTimeImmutable());
     }
 
     public function cancel(): void

@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 
-const rolePaths = { admin: '/admin/dashboard', coach: '/entrenador/dashboard', member: '/socio/dashboard' }
+const rolePaths = { admin: '/admin/socios', coach: '/entrenador/clases', member: '/socio/inicio' }
 
 export default function LoginPage() {
   const { login, user } = useAuth()

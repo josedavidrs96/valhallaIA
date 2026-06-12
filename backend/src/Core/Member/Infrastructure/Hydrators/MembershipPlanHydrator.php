@@ -18,10 +18,11 @@ final class MembershipPlanHydrator
             name:            $model->{MembershipPlanTable::NAME},
             slug:            $model->{MembershipPlanTable::SLUG},
             priceCents:      (int) $model->{MembershipPlanTable::PRICE_CENTS},
-            classesPerMonth: $model->{MembershipPlanTable::CLASSES_PER_MONTH} !== null
-                                 ? (int) $model->{MembershipPlanTable::CLASSES_PER_MONTH}
-                                 : null,
-            isActive:        (bool) $model->{MembershipPlanTable::IS_ACTIVE},
+            classesPerMonth:    $model->{MembershipPlanTable::CLASSES_PER_MONTH} !== null
+                                    ? (int) $model->{MembershipPlanTable::CLASSES_PER_MONTH}
+                                    : null,
+            maxWeeklySessions:  (int) $model->{MembershipPlanTable::MAX_WEEKLY_SESSIONS},
+            isActive:           (bool) $model->{MembershipPlanTable::IS_ACTIVE},
         );
     }
 }

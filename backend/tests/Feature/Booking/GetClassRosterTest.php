@@ -104,6 +104,7 @@ final class GetClassRosterTest extends TestCase
             BookingTable::ID               => $bookingId,
             BookingTable::MEMBER_ID        => $memberId,
             BookingTable::CLASS_SESSION_ID => $sessionId,
+            BookingTable::SESSION_DATE     => '2099-06-16',
             BookingTable::STATUS           => 'confirmed',
         ]);
         return $bookingId;

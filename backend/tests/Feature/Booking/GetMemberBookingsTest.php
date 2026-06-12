@@ -7,6 +7,8 @@ namespace Tests\Feature\Booking;
 use App\Src\Core\Booking\Infrastructure\Tables\BookingTable;
 use App\Src\Core\ClassSession\Infrastructure\Tables\ClassSessionTable;
 use App\Src\Core\ClassType\Infrastructure\Tables\ClassTypeTable;
+use App\Src\Core\Member\Infrastructure\Tables\MemberPlanAssignmentTable;
+use App\Src\Core\Member\Infrastructure\Tables\MembershipPlanTable;
 use App\Src\Core\Member\Infrastructure\Tables\MemberTable;
 use App\Src\Shared\Auth\Infrastructure\Persistence\UserModel;
 use App\Src\Shared\Auth\Infrastructure\Tables\UserTable;
@@ -19,12 +21,13 @@ final class GetMemberBookingsTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function createMemberUser(string $email = 'member@gym.com'): array
+    private function createMemberWithPlan(string $email = 'member@gym.com'): array
     {
         $userId   = (string) new Ulid();
         $memberId = (string) new Ulid();
+        $planId   = (string) new Ulid();
 
-        $user = UserModel::query()->create([
+        UserModel::query()->create([
             UserTable::ID                   => $userId,
             UserTable::EMAIL                => $email,
             UserTable::PASSWORD             => password_hash('Password123', PASSWORD_BCRYPT),
@@ -40,6 +43,23 @@ final class GetMemberBookingsTest extends TestCase
             MemberTable::FIRST_NAME    => 'Carlos',
             MemberTable::LAST_NAME     => 'Ruiz',
             MemberTable::JOIN_DATE     => '2026-06-10',
+        ]);
+
+        DB::table(MembershipPlanTable::TABLE_NAME)->insert([
+            MembershipPlanTable::ID                 => $planId,
+            MembershipPlanTable::NAME               => 'Plan Test',
+            MembershipPlanTable::SLUG               => 'plan-test',
+            MembershipPlanTable::PRICE_CENTS        => 4000,
+            MembershipPlanTable::CLASSES_PER_MONTH  => 25,
+            MembershipPlanTable::MAX_WEEKLY_SESSIONS => 5,
+            MembershipPlanTable::IS_ACTIVE          => 1,
+        ]);
+
+        DB::table(MemberPlanAssignmentTable::TABLE_NAME)->insert([
+            MemberPlanAssignmentTable::ID                 => (string) new Ulid(),
+            MemberPlanAssignmentTable::MEMBER_ID          => $memberId,
+            MemberPlanAssignmentTable::MEMBERSHIP_PLAN_ID => $planId,
+            MemberPlanAssignmentTable::ASSIGNED_AT        => '2026-01-01',
         ]);
 
         return ['user' => UserModel::find($userId), 'memberId' => $memberId];
@@ -69,13 +89,14 @@ final class GetMemberBookingsTest extends TestCase
         return $sessionId;
     }
 
-    private function createBooking(string $memberId, string $sessionId): string
+    private function createBooking(string $memberId, string $sessionId, string $sessionDate = '2099-06-16'): string
     {
         $bookingId = (string) new Ulid();
         DB::table(BookingTable::TABLE_NAME)->insert([
             BookingTable::ID               => $bookingId,
             BookingTable::MEMBER_ID        => $memberId,
             BookingTable::CLASS_SESSION_ID => $sessionId,
+            BookingTable::SESSION_DATE     => $sessionDate,
             BookingTable::STATUS           => 'confirmed',
         ]);
         return $bookingId;
@@ -83,7 +104,7 @@ final class GetMemberBookingsTest extends TestCase
 
     public function test_member_can_get_own_bookings(): void
     {
-        $memberData = $this->createMemberUser();
+        $memberData = $this->createMemberWithPlan();
         $sessionId  = $this->createSessionWithType();
         $this->createBooking($memberData['memberId'], $sessionId);
 
@@ -94,23 +115,27 @@ final class GetMemberBookingsTest extends TestCase
             ->assertJsonStructure([
                 'data' => [
                     '*' => [
-                        'id', 'class_session_id', 'status',
+                        'id', 'class_session_id', 'session_date', 'status',
                         'session' => ['day_of_week', 'time_slot', 'class_type_name', 'class_type_slug'],
                         'created_at',
                     ],
                 ],
+                'weekly_used',
+                'weekly_max',
             ])
-            ->assertJsonCount(1, 'data');
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('weekly_max', 5);
     }
 
     public function test_member_with_no_bookings_returns_empty_array(): void
     {
-        $memberData = $this->createMemberUser();
+        $memberData = $this->createMemberWithPlan();
 
         $response = $this->actingAs($memberData['user'], 'sanctum')
             ->getJson('/api/member/bookings');
 
         $response->assertStatus(200)
-            ->assertJsonPath('data', []);
+            ->assertJsonPath('data', [])
+            ->assertJsonPath('weekly_used', 0);
     }
 }

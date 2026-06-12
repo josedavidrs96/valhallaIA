@@ -17,6 +17,7 @@ final class BookingResource
             'id'               => $this->rm->id,
             'member_id'        => $this->rm->memberId,
             'class_session_id' => $this->rm->classSessionId,
+            'session_date'     => $this->rm->sessionDate,
             'status'           => $this->rm->status,
             'session'          => [
                 'day_of_week'     => $this->rm->dayOfWeek,
