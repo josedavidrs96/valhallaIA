@@ -1,7 +1,7 @@
 # Project Roadmap — Valhalla Gym
 
 **Status:** Active
-**Last Updated:** 2026-06-11
+**Last Updated:** 2026-06-12
 **Current Phase:** MVP Complete — All phases done
 
 ## Project Summary
@@ -151,7 +151,7 @@ management: public website + member management + class schedule + payment tracki
 
 | Epic | Description | Dependencies | Status |
 |------|-------------|--------------|--------|
-| [epic-booking-rules](epics/epic-booking-rules/requirements.md) | Weekly booking limit per plan + cancellation cutoff (no cancel past classes or after start time) | epic-booking | 🚧 In Progress |
+| [epic-booking-rules](epics/epic-booking-rules/requirements.md) | Weekly booking limit per plan + cancellation cutoff (no cancel past classes or after start time) | epic-booking | ✅ Done |
 | [epic-booking-ux](epics/epic-booking-ux/requirements.md) | Reorganize booking views with tabs (upcoming / past / cancelled) and better UX | epic-booking-rules | ⬜ Not Started |
 | [epic-performance](epics/epic-performance/requirements.md) | Frontend prefetching, React Query cache tuning, backend N+1 fixes | All Phase 3 | ⬜ Not Started |
 | [epic-invoices](epics/epic-invoices/requirements.md) | Simple monthly invoice PDF per payment, downloadable by admin and member | epic-payments | ⬜ Not Started |
