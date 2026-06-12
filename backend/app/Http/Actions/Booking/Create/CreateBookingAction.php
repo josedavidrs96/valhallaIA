@@ -10,6 +10,7 @@ use App\Src\Core\Booking\Application\Commands\CreateBooking\CreateBookingHandler
 use App\Src\Core\Booking\Application\Queries\GetBookingById\GetBookingByIdHandler;
 use App\Src\Core\Booking\Application\Queries\GetBookingById\GetBookingByIdQuery;
 use App\Src\Core\Booking\Domain\Exceptions\BookingAlreadyExistsException;
+use App\Src\Core\Booking\Domain\Exceptions\DailyLimitReachedException;
 use App\Src\Core\Booking\Domain\Exceptions\MemberHasNoPlanException;
 use App\Src\Core\Booking\Domain\Exceptions\SessionFullException;
 use App\Src\Core\Booking\Domain\Exceptions\SessionNotAvailableException;
@@ -58,6 +59,8 @@ final class CreateBookingAction
             return response()->json(['error' => 'Ya tienes una reserva para esta sesion', 'code' => 'BOOKING_ALREADY_EXISTS'], 409);
         } catch (MemberHasNoPlanException) {
             return response()->json(['error' => 'No tienes un plan activo', 'code' => 'MEMBER_HAS_NO_PLAN'], 422);
+        } catch (DailyLimitReachedException) {
+            return response()->json(['error' => 'Solo puedes reservar una clase por dia', 'code' => 'DAILY_LIMIT_REACHED'], 422);
         } catch (WeeklyLimitReachedException $e) {
             return response()->json([
                 'error'       => 'Has alcanzado el limite semanal de tu plan',

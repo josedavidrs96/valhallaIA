@@ -208,6 +208,44 @@ final class CreateBookingTest extends TestCase
             ->assertJsonPath('code', 'MEMBER_HAS_NO_PLAN');
     }
 
+    public function test_daily_limit_reached_returns_422(): void
+    {
+        $memberData  = $this->createMemberWithPlan('daily@gym.com', 5);
+        $classTypeId = $this->createClassType();
+
+        // Two sessions on the same day (monday) at different times
+        $session1Id = (string) new Ulid();
+        DB::table(ClassSessionTable::TABLE_NAME)->insert([
+            ClassSessionTable::ID            => $session1Id,
+            ClassSessionTable::CLASS_TYPE_ID => $classTypeId,
+            ClassSessionTable::DAY_OF_WEEK   => 'monday',
+            ClassSessionTable::TIME_SLOT     => '07:45',
+            ClassSessionTable::MAX_CAPACITY  => 20,
+            ClassSessionTable::STATUS        => 'active',
+        ]);
+
+        $session2Id = (string) new Ulid();
+        DB::table(ClassSessionTable::TABLE_NAME)->insert([
+            ClassSessionTable::ID            => $session2Id,
+            ClassSessionTable::CLASS_TYPE_ID => $classTypeId,
+            ClassSessionTable::DAY_OF_WEEK   => 'monday',
+            ClassSessionTable::TIME_SLOT     => '20:00',
+            ClassSessionTable::MAX_CAPACITY  => 20,
+            ClassSessionTable::STATUS        => 'active',
+        ]);
+
+        // First booking succeeds
+        $this->actingAs($memberData['user'], 'sanctum')
+            ->postJson('/api/member/bookings', ['class_session_id' => $session1Id])
+            ->assertStatus(201);
+
+        // Second booking same day hits daily limit
+        $this->actingAs($memberData['user'], 'sanctum')
+            ->postJson('/api/member/bookings', ['class_session_id' => $session2Id])
+            ->assertStatus(422)
+            ->assertJsonPath('code', 'DAILY_LIMIT_REACHED');
+    }
+
     public function test_weekly_limit_reached_returns_422(): void
     {
         // Plan with weekly limit of 1

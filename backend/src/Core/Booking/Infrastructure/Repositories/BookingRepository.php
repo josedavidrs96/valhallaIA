@@ -118,6 +118,15 @@ final class BookingRepository implements BookingRepositoryInterface
             ->count();
     }
 
+    public function countConfirmedForMemberOnDate(MemberId $memberId, \DateTimeImmutable $date): int
+    {
+        return BookingModel::query()
+            ->where(BookingTable::MEMBER_ID, $memberId->value())
+            ->where(BookingTable::STATUS, BookingStatus::Confirmed->value)
+            ->where(BookingTable::SESSION_DATE, $date->format('Y-m-d'))
+            ->count();
+    }
+
     public function findActivePlanMaxWeeklyForMember(MemberId $memberId): ?int
     {
         $row = DB::table(MemberPlanAssignmentTable::TABLE_NAME . ' as mpa')

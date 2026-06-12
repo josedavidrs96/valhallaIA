@@ -6,6 +6,7 @@ namespace App\Src\Core\Booking\Application\Commands\CreateBooking;
 
 use App\Src\Core\Booking\Domain\Entities\Booking;
 use App\Src\Core\Booking\Domain\Exceptions\BookingAlreadyExistsException;
+use App\Src\Core\Booking\Domain\Exceptions\DailyLimitReachedException;
 use App\Src\Core\Booking\Domain\Exceptions\MemberHasNoPlanException;
 use App\Src\Core\Booking\Domain\Exceptions\SessionFullException;
 use App\Src\Core\Booking\Domain\Exceptions\SessionNotAvailableException;
@@ -43,6 +44,10 @@ final class CreateBookingHandler
 
         if ($this->bookingRepo->findByMemberSessionAndDate($command->memberId, $command->classSessionId, $sessionDate) !== null) {
             throw new BookingAlreadyExistsException($command->memberId->value());
+        }
+
+        if ($this->bookingRepo->countConfirmedForMemberOnDate($command->memberId, $sessionDate) > 0) {
+            throw new DailyLimitReachedException($sessionDate->format('Y-m-d'));
         }
 
         $maxWeekly = $this->bookingRepo->findActivePlanMaxWeeklyForMember($command->memberId);

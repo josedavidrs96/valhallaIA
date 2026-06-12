@@ -22,6 +22,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   SESSION_NOT_AVAILABLE:     'La sesion no esta disponible',
   MEMBER_HAS_NO_PLAN:        'No tienes un plan activo',
   WEEKLY_LIMIT_REACHED:      'Has alcanzado el limite de clases de tu plan esta semana',
+  DAILY_LIMIT_REACHED:       'Solo puedes reservar una clase por dia',
 }
 
 type ScheduleResponse = Record<string, ClassSession[]>

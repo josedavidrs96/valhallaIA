@@ -152,8 +152,9 @@ management: public website + member management + class schedule + payment tracki
 | Epic | Description | Dependencies | Status |
 |------|-------------|--------------|--------|
 | [epic-booking-rules](epics/epic-booking-rules/requirements.md) | Weekly booking limit per plan + cancellation cutoff (no cancel past classes or after start time) | epic-booking | ✅ Done |
+| [epic-booking-daily-limit](epics/epic-booking-daily-limit/requirements.md) | Max 1 booking per day per member — prevent double-booking same day | epic-booking-rules | 🚧 In Progress |
+| [epic-performance](epics/epic-performance/requirements.md) | Frontend prefetching, React Query cache tuning, backend N+1 fixes | All Phase 3 | 🚧 In Progress |
 | [epic-booking-ux](epics/epic-booking-ux/requirements.md) | Reorganize booking views with tabs (upcoming / past / cancelled) and better UX | epic-booking-rules | ⬜ Not Started |
-| [epic-performance](epics/epic-performance/requirements.md) | Frontend prefetching, React Query cache tuning, backend N+1 fixes | All Phase 3 | ⬜ Not Started |
 | [epic-invoices](epics/epic-invoices/requirements.md) | Simple monthly invoice PDF per payment, downloadable by admin and member | epic-payments | ⬜ Not Started |
 | [epic-notifications](epics/epic-notifications/requirements.md) | Admin sends email notification to overdue members | epic-payments | ⬜ Not Started |
 | [epic-corporate](epics/epic-corporate/requirements.md) | Public landing: real logo, trainers section, gym location, full branding | epic-public-site | ⬜ Not Started |
@@ -188,6 +189,10 @@ management: public website + member management + class schedule + payment tracki
 ## Bug Fixes & Improvements Log
 
 ```
+2026-06-12:
+- Started: epic-booking-daily-limit — max 1 reserva por dia por socio, evita doble reserva.
+- Started: epic-performance — slowness reported; prefetching, N+1 fixes, React Query tuning.
+
 2026-06-11 (session 2):
 - Started: Phase 4 — iterations post-MVP testing.
   - Identified bugs: weekly booking limit not enforced, expired bookings cancellable.

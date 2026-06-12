@@ -32,6 +32,8 @@ interface BookingRepositoryInterface
         MemberId $memberId, \DateTimeImmutable $weekStart, \DateTimeImmutable $weekEnd
     ): int;
 
+    public function countConfirmedForMemberOnDate(MemberId $memberId, \DateTimeImmutable $date): int;
+
     public function findActivePlanMaxWeeklyForMember(MemberId $memberId): ?int;
 
     public function save(Booking $booking): void;

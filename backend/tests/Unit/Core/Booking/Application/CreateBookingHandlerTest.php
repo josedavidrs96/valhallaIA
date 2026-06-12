@@ -6,6 +6,7 @@ namespace Tests\Unit\Core\Booking\Application;
 
 use App\Src\Core\Booking\Application\Commands\CreateBooking\CreateBookingCommand;
 use App\Src\Core\Booking\Application\Commands\CreateBooking\CreateBookingHandler;
+use App\Src\Core\Booking\Domain\Exceptions\DailyLimitReachedException;
 use App\Src\Core\Booking\Domain\Exceptions\MemberHasNoPlanException;
 use App\Src\Core\Booking\Domain\Exceptions\WeeklyLimitReachedException;
 use App\Src\Core\Booking\Domain\Repositories\BookingRepositoryInterface;
@@ -66,6 +67,21 @@ final class CreateBookingHandlerTest extends TestCase
         );
     }
 
+    public function test_throws_daily_limit_when_already_booked_same_day(): void
+    {
+        $session = $this->makeSession();
+        $now     = new \DateTimeImmutable('2026-06-15 10:00:00'); // Monday
+
+        $this->sessionRepo->method('getById')->willReturn($session);
+        $this->bookingRepo->method('countConfirmedBySession')->willReturn(0);
+        $this->bookingRepo->method('findByMemberSessionAndDate')->willReturn(null);
+        $this->bookingRepo->method('countConfirmedForMemberOnDate')->willReturn(1); // already 1 booking today
+
+        $this->expectException(DailyLimitReachedException::class);
+
+        $this->handler->handle($this->makeCommand($now));
+    }
+
     public function test_throws_member_has_no_plan_when_no_plan_assigned(): void
     {
         $session = $this->makeSession();
@@ -74,6 +90,7 @@ final class CreateBookingHandlerTest extends TestCase
         $this->sessionRepo->method('getById')->willReturn($session);
         $this->bookingRepo->method('countConfirmedBySession')->willReturn(0);
         $this->bookingRepo->method('findByMemberSessionAndDate')->willReturn(null);
+        $this->bookingRepo->method('countConfirmedForMemberOnDate')->willReturn(0);
         $this->bookingRepo->method('findActivePlanMaxWeeklyForMember')->willReturn(null);
 
         $this->expectException(MemberHasNoPlanException::class);
@@ -89,6 +106,7 @@ final class CreateBookingHandlerTest extends TestCase
         $this->sessionRepo->method('getById')->willReturn($session);
         $this->bookingRepo->method('countConfirmedBySession')->willReturn(0);
         $this->bookingRepo->method('findByMemberSessionAndDate')->willReturn(null);
+        $this->bookingRepo->method('countConfirmedForMemberOnDate')->willReturn(0);
         $this->bookingRepo->method('findActivePlanMaxWeeklyForMember')->willReturn(2);
         $this->bookingRepo->method('countConfirmedForMemberInWeek')->willReturn(2); // already at limit
 
@@ -105,6 +123,7 @@ final class CreateBookingHandlerTest extends TestCase
         $this->sessionRepo->method('getById')->willReturn($session);
         $this->bookingRepo->method('countConfirmedBySession')->willReturn(0);
         $this->bookingRepo->method('findByMemberSessionAndDate')->willReturn(null);
+        $this->bookingRepo->method('countConfirmedForMemberOnDate')->willReturn(0);
         $this->bookingRepo->method('findActivePlanMaxWeeklyForMember')->willReturn(3);
         $this->bookingRepo->method('countConfirmedForMemberInWeek')->willReturn(1); // 1 of 3 used
 
