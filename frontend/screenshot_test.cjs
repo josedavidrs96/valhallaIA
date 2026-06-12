@@ -37,10 +37,15 @@ const { chromium } = require('/tmp/node_modules/playwright-core');
   await page.click('button[type="submit"]');
   await page.waitForURL('**/admin/**', { timeout: 8000 });
   await page.waitForLoadState('networkidle');
+  // Wait for admin layout sidebar to appear
+  await page.waitForSelector('text=/Panel de Admin/i', { timeout: 10000 }).catch(function(){});
+  await page.waitForTimeout(1500);
   await page.screenshot({ path: '/app/frontend/public/ss-03-admin.png' });
   console.log('OK 03 Admin [' + page.url().replace(BASE, '') + ']');
 
   // ── 04 Admin socios ─────────────────────────────────────────────────────────
+  await page.waitForSelector('table, text=/Sin socios/i, text=/Socios/i', { timeout: 10000 }).catch(function(){});
+  await page.waitForTimeout(500);
   await page.screenshot({ path: '/app/frontend/public/ss-04-admin-socios.png' });
   console.log('OK 04 Admin socios');
 
@@ -69,6 +74,8 @@ const { chromium } = require('/tmp/node_modules/playwright-core');
   await page.click('button[type="submit"]');
   await page.waitForURL('**/socio/**', { timeout: 8000 });
   await page.waitForLoadState('networkidle');
+  await page.waitForSelector('text=/Bienvenido/i, text=/Tu plan/i, text=/Ver horario/i', { timeout: 10000 }).catch(function(){});
+  await page.waitForTimeout(1000);
   await page.screenshot({ path: '/app/frontend/public/ss-08-member-home.png' });
   console.log('OK 08 Member [' + page.url().replace(BASE, '') + ']');
 
@@ -100,6 +107,11 @@ const { chromium } = require('/tmp/node_modules/playwright-core');
         break;
       }
     }
+    // Wait for mutation to settle (isPending → false) then screenshot
+    await page.waitForFunction(function() {
+      return !document.querySelector('button:disabled[class*="blue"]');
+    }, { timeout: 5000 }).catch(function(){});
+    await page.waitForTimeout(1500);
     await page.screenshot({ path: '/app/frontend/public/ss-10-after-booking.png' });
     var quotaText = await page.locator('text=/Clases esta semana/i').locator('..').textContent().catch(function() { return ''; });
     console.log('OK 10 Booking (booked=' + booked + ') badge: ' + quotaText.replace(/\s+/g, ' ').trim());
@@ -108,21 +120,33 @@ const { chromium } = require('/tmp/node_modules/playwright-core');
     console.log('SKIP 10: no Reservar buttons');
   }
 
-  // ── 11 Mis reservas — session_date, cuota, Finalizada, Cancelar ──────────────
-  await navTo('/socio/reservas', 1000);
-  await page.waitForSelector('table, text=/No tienes reservas/i', { timeout: 10000 }).catch(function(){});
+  // ── 11 Mis reservas — tabs, cuota, Proximas, Pasadas ────────────────────────
+  await page.goto(BASE + '/socio/reservas', { waitUntil: 'domcontentloaded', timeout: 15000 });
+  await page.waitForSelector('text=/Proximas/i, text=/Pasadas/i, text=/No tienes reservas/i', { timeout: 10000 }).catch(function(){});
   await page.waitForTimeout(2000);
   await page.screenshot({ path: '/app/frontend/public/ss-11-member-reservas.png' });
   var weeklyCounter = await page.locator('text=/Esta semana/i').count();
-  var finalizadas   = await page.locator('td:has-text("Finalizada")').count();
+  var tabUpcoming   = await page.locator('button:has-text("Proximas")').count();
+  var tabPast       = await page.locator('button:has-text("Pasadas")').count();
   var cancelarBtns  = await page.locator('button:has-text("Cancelar")').count();
-  var noReservas    = await page.locator('text=/No tienes reservas/i').count();
+  var noReservas    = await page.locator('text=/No tienes reservas proximas/i').count();
   console.log('OK 11 Reservas (weekly counter=' + weeklyCounter +
-    ', finalizadas=' + finalizadas + ', cancelar=' + cancelarBtns +
-    ', noReservas=' + noReservas + ')');
+    ', tab-proximas=' + tabUpcoming + ', tab-pasadas=' + tabPast +
+    ', cancelar=' + cancelarBtns + ', empty=' + noReservas + ')');
+
+  // Click tab Pasadas to verify content
+  if (tabPast > 0) {
+    await page.locator('button:has-text("Pasadas")').click();
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: '/app/frontend/public/ss-11b-reservas-pasadas.png' });
+    var pastRows = await page.locator('tbody tr').count();
+    console.log('OK 11b Pasadas tab (rows=' + pastRows + ')');
+  }
 
   // ── 12 Mis pagos ────────────────────────────────────────────────────────────
-  await navTo('/socio/pagos', 1500);
+  await page.goto(BASE + '/socio/pagos', { waitUntil: 'domcontentloaded', timeout: 15000 });
+  await page.waitForSelector('text=/Mis pagos/i, text=/No tienes pagos/i, text=/pagos/i', { timeout: 10000 }).catch(function(){});
+  await page.waitForTimeout(1500);
   await page.screenshot({ path: '/app/frontend/public/ss-12-member-pagos.png' });
   console.log('OK 12 Member pagos [' + page.url().replace(BASE, '') + ']');
 
