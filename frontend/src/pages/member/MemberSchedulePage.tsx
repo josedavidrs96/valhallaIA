@@ -102,7 +102,8 @@ export default function MemberSchedulePage() {
       ) : (
         <div className="space-y-3">
           {sessions.map(session => {
-            const isFull      = session.max_capacity <= 0
+            const available   = session.available_capacity
+            const isFull      = available <= 0
             const isInactive  = session.status !== 'active'
             const isDisabled  = isFull || isInactive || limitReached || bookMutation.isPending
 
@@ -117,7 +118,7 @@ export default function MemberSchedulePage() {
                     {DAY_LABELS[session.day_of_week] ?? session.day_of_week} &middot; {session.time_slot}
                   </p>
                   <p className="text-slate-500 text-xs mt-0.5">
-                    {session.max_capacity} plazas disponibles
+                    {available} {available === 1 ? 'plaza disponible' : 'plazas disponibles'}
                   </p>
                 </div>
 

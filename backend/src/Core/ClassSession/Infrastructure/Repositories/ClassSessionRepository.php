@@ -86,7 +86,6 @@ final class ClassSessionRepository implements ClassSessionRepositoryInterface
         $ct = ClassTypeTable::TABLE_NAME;
         $u  = UserTable::TABLE_NAME;
 
-        // Single JOIN query — no N+1
         $rows = DB::table("{$cs}")
             ->select([
                 "{$cs}." . ClassSessionTable::ID,
@@ -101,9 +100,20 @@ final class ClassSessionRepository implements ClassSessionRepositoryInterface
                 "{$cs}." . ClassSessionTable::MAX_CAPACITY,
                 "{$cs}." . ClassSessionTable::STATUS,
                 "{$cs}." . ClassSessionTable::CREATED_AT,
+                DB::raw("{$cs}." . ClassSessionTable::MAX_CAPACITY . ' - COALESCE(booked.cnt, 0) as available_capacity'),
             ])
             ->join("{$ct}", "{$ct}." . ClassTypeTable::ID, '=', "{$cs}." . ClassSessionTable::CLASS_TYPE_ID)
             ->leftJoin("{$u}", "{$u}." . UserTable::ID, '=', "{$cs}." . ClassSessionTable::COACH_ID)
+            ->leftJoinSub(
+                DB::table('bookings')
+                    ->selectRaw('class_session_id, COUNT(*) as cnt')
+                    ->where('status', 'confirmed')
+                    ->groupBy('class_session_id'),
+                'booked',
+                'booked.class_session_id',
+                '=',
+                "{$cs}." . ClassSessionTable::ID,
+            )
             ->whereNull("{$cs}." . ClassSessionTable::DELETED_AT)
             ->orderByRaw("CASE {$cs}." . ClassSessionTable::DAY_OF_WEEK . " WHEN 'monday' THEN 1 WHEN 'tuesday' THEN 2 WHEN 'wednesday' THEN 3 WHEN 'thursday' THEN 4 WHEN 'friday' THEN 5 ELSE 6 END")
             ->orderBy("{$cs}." . ClassSessionTable::TIME_SLOT)
@@ -132,9 +142,20 @@ final class ClassSessionRepository implements ClassSessionRepositoryInterface
                 "{$cs}." . ClassSessionTable::MAX_CAPACITY,
                 "{$cs}." . ClassSessionTable::STATUS,
                 "{$cs}." . ClassSessionTable::CREATED_AT,
+                DB::raw("{$cs}." . ClassSessionTable::MAX_CAPACITY . ' - COALESCE(booked.cnt, 0) as available_capacity'),
             ])
             ->join("{$ct}", "{$ct}." . ClassTypeTable::ID, '=', "{$cs}." . ClassSessionTable::CLASS_TYPE_ID)
             ->leftJoin("{$u}", "{$u}." . UserTable::ID, '=', "{$cs}." . ClassSessionTable::COACH_ID)
+            ->leftJoinSub(
+                DB::table('bookings')
+                    ->selectRaw('class_session_id, COUNT(*) as cnt')
+                    ->where('status', 'confirmed')
+                    ->groupBy('class_session_id'),
+                'booked',
+                'booked.class_session_id',
+                '=',
+                "{$cs}." . ClassSessionTable::ID,
+            )
             ->where("{$cs}." . ClassSessionTable::ID, $id->value())
             ->whereNull("{$cs}." . ClassSessionTable::DELETED_AT)
             ->first();
@@ -166,9 +187,20 @@ final class ClassSessionRepository implements ClassSessionRepositoryInterface
                 "{$cs}." . ClassSessionTable::MAX_CAPACITY,
                 "{$cs}." . ClassSessionTable::STATUS,
                 "{$cs}." . ClassSessionTable::CREATED_AT,
+                DB::raw("{$cs}." . ClassSessionTable::MAX_CAPACITY . ' - COALESCE(booked.cnt, 0) as available_capacity'),
             ])
             ->join("{$ct}", "{$ct}." . ClassTypeTable::ID, '=', "{$cs}." . ClassSessionTable::CLASS_TYPE_ID)
             ->leftJoin("{$u}", "{$u}." . UserTable::ID, '=', "{$cs}." . ClassSessionTable::COACH_ID)
+            ->leftJoinSub(
+                DB::table('bookings')
+                    ->selectRaw('class_session_id, COUNT(*) as cnt')
+                    ->where('status', 'confirmed')
+                    ->groupBy('class_session_id'),
+                'booked',
+                'booked.class_session_id',
+                '=',
+                "{$cs}." . ClassSessionTable::ID,
+            )
             ->whereNull("{$cs}." . ClassSessionTable::DELETED_AT);
 
         if ($day !== null) {
@@ -209,9 +241,20 @@ final class ClassSessionRepository implements ClassSessionRepositoryInterface
                 "{$cs}." . ClassSessionTable::MAX_CAPACITY,
                 "{$cs}." . ClassSessionTable::STATUS,
                 "{$cs}." . ClassSessionTable::CREATED_AT,
+                DB::raw("{$cs}." . ClassSessionTable::MAX_CAPACITY . ' - COALESCE(booked.cnt, 0) as available_capacity'),
             ])
             ->join("{$ct}", "{$ct}." . ClassTypeTable::ID, '=', "{$cs}." . ClassSessionTable::CLASS_TYPE_ID)
             ->leftJoin("{$u}", "{$u}." . UserTable::ID, '=', "{$cs}." . ClassSessionTable::COACH_ID)
+            ->leftJoinSub(
+                DB::table('bookings')
+                    ->selectRaw('class_session_id, COUNT(*) as cnt')
+                    ->where('status', 'confirmed')
+                    ->groupBy('class_session_id'),
+                'booked',
+                'booked.class_session_id',
+                '=',
+                "{$cs}." . ClassSessionTable::ID,
+            )
             ->where("{$cs}." . ClassSessionTable::COACH_ID, $coachId->value())
             ->whereNull("{$cs}." . ClassSessionTable::DELETED_AT)
             ->orderByRaw("CASE {$cs}." . ClassSessionTable::DAY_OF_WEEK . " WHEN 'monday' THEN 1 WHEN 'tuesday' THEN 2 WHEN 'wednesday' THEN 3 WHEN 'thursday' THEN 4 WHEN 'friday' THEN 5 ELSE 6 END")
@@ -253,21 +296,24 @@ final class ClassSessionRepository implements ClassSessionRepositoryInterface
 
     private function rowToRM(object $row): ClassSessionRM
     {
+        $max = (int) $row->{ClassSessionTable::MAX_CAPACITY};
+
         return new ClassSessionRM(
-            id:             ClassSessionId::fromString($row->{ClassSessionTable::ID}),
-            classTypeId:    $row->{ClassSessionTable::CLASS_TYPE_ID},
-            classTypeName:  $row->class_type_name,
-            classTypeSlug:  $row->class_type_slug,
-            classTypeColor: $row->class_type_color ?? null,
-            coachId:        $row->{ClassSessionTable::COACH_ID} ?? null,
-            coachEmail:     $row->coach_email ?? null,
-            dayOfWeek:      DayOfWeek::from($row->{ClassSessionTable::DAY_OF_WEEK}),
-            timeSlot:       $row->{ClassSessionTable::TIME_SLOT},
-            maxCapacity:    (int) $row->{ClassSessionTable::MAX_CAPACITY},
-            status:         ClassSessionStatus::from($row->{ClassSessionTable::STATUS}),
-            createdAt:      $row->{ClassSessionTable::CREATED_AT}
-                                ? new \DateTimeImmutable((string) $row->{ClassSessionTable::CREATED_AT})
-                                : new \DateTimeImmutable(),
+            id:                ClassSessionId::fromString($row->{ClassSessionTable::ID}),
+            classTypeId:       $row->{ClassSessionTable::CLASS_TYPE_ID},
+            classTypeName:     $row->class_type_name,
+            classTypeSlug:     $row->class_type_slug,
+            classTypeColor:    $row->class_type_color ?? null,
+            coachId:           $row->{ClassSessionTable::COACH_ID} ?? null,
+            coachEmail:        $row->coach_email ?? null,
+            dayOfWeek:         DayOfWeek::from($row->{ClassSessionTable::DAY_OF_WEEK}),
+            timeSlot:          $row->{ClassSessionTable::TIME_SLOT},
+            maxCapacity:       $max,
+            availableCapacity: isset($row->available_capacity) ? max(0, (int) $row->available_capacity) : $max,
+            status:            ClassSessionStatus::from($row->{ClassSessionTable::STATUS}),
+            createdAt:         $row->{ClassSessionTable::CREATED_AT}
+                                   ? new \DateTimeImmutable((string) $row->{ClassSessionTable::CREATED_AT})
+                                   : new \DateTimeImmutable(),
         );
     }
 }

@@ -21,6 +21,7 @@ final readonly class ClassSessionRM
         public DayOfWeek $dayOfWeek,
         public string $timeSlot,
         public int $maxCapacity,
+        public int $availableCapacity,
         public ClassSessionStatus $status,
         public \DateTimeImmutable $createdAt,
     ) {}

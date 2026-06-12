@@ -1,5 +1,9 @@
 import { NavLink, Outlet } from 'react-router-dom'
+import { useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/AuthContext'
+import { memberProfileService } from '@/services/memberProfile'
+import { bookingsService } from '@/services/bookings'
 
 const navLinks = [
   { to: '/socio/inicio',    label: 'Inicio' },
@@ -10,6 +14,26 @@ const navLinks = [
 
 export default function MemberLayout() {
   const { logout } = useAuth()
+  const queryClient = useQueryClient()
+
+  // Prefetch common member queries on layout mount so page transitions feel instant
+  useEffect(() => {
+    queryClient.prefetchQuery({
+      queryKey: ['my-bookings'],
+      queryFn: () => bookingsService.myBookings().then(r => r.data),
+      staleTime: 30_000,
+    })
+    queryClient.prefetchQuery({
+      queryKey: ['member-schedule'],
+      queryFn: () => memberProfileService.getSchedule().then(r => r.data),
+      staleTime: 30_000,
+    })
+    queryClient.prefetchQuery({
+      queryKey: ['member-profile'],
+      queryFn: () => memberProfileService.getProfile().then(r => r.data),
+      staleTime: 60_000,
+    })
+  }, [])
 
   return (
     <div className="min-h-screen bg-slate-950">

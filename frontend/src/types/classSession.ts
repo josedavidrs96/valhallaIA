@@ -5,6 +5,7 @@ export interface ClassSession {
   class_type: { id: string; name: string; slug: string; color: string }
   coach: { id: string; email: string } | null
   max_capacity: number
+  available_capacity: number
   status: string
 }
 

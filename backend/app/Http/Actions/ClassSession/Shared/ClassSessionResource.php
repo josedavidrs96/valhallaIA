@@ -21,19 +21,20 @@ final class ClassSessionResource
         $rm = $this->rm;
 
         return [
-            'id'           => $rm->id->value(),
-            'class_type'   => [
+            'id'                 => $rm->id->value(),
+            'class_type'         => [
                 'id'    => $rm->classTypeId,
                 'name'  => $rm->classTypeName,
                 'slug'  => $rm->classTypeSlug,
                 'color' => $rm->classTypeColor,
             ],
-            'coach'        => $rm->coachId ? ['id' => $rm->coachId, 'email' => $rm->coachEmail] : null,
-            'day_of_week'  => $rm->dayOfWeek->value,
-            'time_slot'    => $rm->timeSlot,
-            'max_capacity' => $rm->maxCapacity,
-            'status'       => $rm->status->value,
-            'created_at'   => $rm->createdAt->format(\DateTimeInterface::ATOM),
+            'coach'              => $rm->coachId ? ['id' => $rm->coachId, 'email' => $rm->coachEmail] : null,
+            'day_of_week'        => $rm->dayOfWeek->value,
+            'time_slot'          => $rm->timeSlot,
+            'max_capacity'       => $rm->maxCapacity,
+            'available_capacity' => $rm->availableCapacity,
+            'status'             => $rm->status->value,
+            'created_at'         => $rm->createdAt->format(\DateTimeInterface::ATOM),
         ];
     }
 }
