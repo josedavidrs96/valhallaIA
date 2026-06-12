@@ -154,7 +154,7 @@ management: public website + member management + class schedule + payment tracki
 | [epic-booking-rules](epics/epic-booking-rules/requirements.md) | Weekly booking limit per plan + cancellation cutoff (no cancel past classes or after start time) | epic-booking | ✅ Done |
 | [epic-booking-daily-limit](epics/epic-booking-daily-limit/requirements.md) | Max 1 booking per day per member — prevent double-booking same day | epic-booking-rules | ✅ Done |
 | [epic-performance](epics/epic-performance/requirements.md) | Frontend prefetching, React Query cache tuning, backend N+1 fixes | All Phase 3 | ✅ Done |
-| [epic-booking-ux](epics/epic-booking-ux/requirements.md) | Reorganize booking views with tabs (upcoming / past / cancelled) and better UX | epic-booking-rules | ⬜ Not Started |
+| [epic-booking-ux](epics/epic-booking-ux/requirements.md) | Reorganize booking views with tabs (upcoming / past / cancelled) and better UX | epic-booking-rules | ✅ Done |
 | [epic-invoices](epics/epic-invoices/requirements.md) | Simple monthly invoice PDF per payment, downloadable by admin and member | epic-payments | ⬜ Not Started |
 | [epic-notifications](epics/epic-notifications/requirements.md) | Admin sends email notification to overdue members | epic-payments | ⬜ Not Started |
 | [epic-corporate](epics/epic-corporate/requirements.md) | Public landing: real logo, trainers section, gym location, full branding | epic-public-site | ⬜ Not Started |
@@ -192,6 +192,7 @@ management: public website + member management + class schedule + payment tracki
 2026-06-12:
 - Done: epic-booking-daily-limit — max 1 reserva por dia por socio, evita doble reserva. 198/198 tests.
 - Done: epic-performance — available_capacity via LEFT JOIN subquery, MemberLayout prefetching, gcTime 10min.
+- Done: epic-booking-ux — tabs Proximas/Pasadas/Canceladas en Mis Reservas, cards con countdown para proximas.
 
 2026-06-11 (session 2):
 - Started: Phase 4 — iterations post-MVP testing.
